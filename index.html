@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#4B1D3F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.json">
+<title>Vin Comparatif</title>
+<style>
+:root{--bg:#1A0F1A;--card:#2D1B2E;--accent:#C9A86A;--text:#F5F1EB}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+body{background:var(--bg);color:var(--text);padding:16px;padding-top:32px;position:relative}
+h1{font-size:1.4rem;margin-bottom:16px;color:var(--accent)}
+
+.creator{
+  position:absolute;top:210px;left:8px;transform:rotate(-90deg);transform-origin:left center;
+  font-size:0.75rem;opacity:0.4;color:var(--text);white-space:nowrap;z-index:10;
+}
+
+.nav{display:flex;gap:8px;margin-bottom:16px}
+.nav button{flex:1;padding:12px;background:var(--card);border:none;color:var(--text);border-radius:12px;font-weight:600}
+.nav button.active{background:var(--accent);color:#1A0F1A}
+.screen{display:none}
+.screen.active{display:block}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px}
+input,textarea,select{
+  width:100%;background:#1A0F1A;border:1px solid #ffffff1a;border-radius:12px;
+  padding:12px;color:var(--text);font-size:1rem;margin-bottom:12px
+}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
+label{font-size:0.85rem;opacity:0.7;margin-bottom:6px;display:block}
+button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:600;width:100%;cursor:pointer}
+.btn-primary{background:var(--accent);color:#1A0F1A}
+.btn-secondary{background:#ffffff1a;color:var(--text)}
+.btn-danger{background:#E22134;color:white}
+.photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px;display:none}
+
+/* Fix photo inputs - hors écran au lieu de display:none */
+#photoCamera, #photoGallery{
+  position:absolute;
+  left:-9999px;
+  width:1px;
+  height:1px;
+  opacity:0;
+}
+
+.wine-item{background:var(--card);border-radius:16px;padding:12px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start}
+.wine-item img{width:80px;height:80px;object-fit:cover;border-radius:12px;cursor:pointer;flex-shrink:0}
+.wine-content{flex:1}
+.wine-name{font-size:1.1rem;font-weight:700;color:var(--accent)}
+.wine-meta{font-size:0.9rem;opacity:0.8;margin:4px 0}
+.stars{color:#C9A86A;font-size:1.2rem}
+.actions{display:flex;gap:8px;margin-top:8px}
+.actions button{padding:10px;font-size:0.9rem}
+
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal.active{display:flex}
+.modal-zoom-container{width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none}
+.modal img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center}
+.modal-close{position:absolute;top:20px;right:20px;font-size:2rem;color:white;background:none;border:none;z-index:1001}
+
+.filter-row{display:flex;gap:8px;margin-bottom:12px}
+.filter-row select{margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="creator">Built by Loïc D.</div>
+<h1>🍷 Comparatif Vin</h1>
+
+<div class="nav">
+  <button id="navAdd" class="active" onclick="switchScreen('add')">Ajouter</button>
+  <button id="navRank" onclick="switchScreen('rank')">Classement</button>
+</div>
+
+<div class="screen active" id="screenAdd">
+  <div class="card">
+    <label>Nom du vin</label>
+    <input type="text" id="name" placeholder="Château Margaux">
+
+    <label>Région</label>
+    <select id="region">
+      <option value="">-- Choisir une région --</option>
+      <option value="Bordeaux">Bordeaux</option>
+      <option value="Sud-Ouest">Sud-Ouest</option>
+      <option value="Bourgogne">Bourgogne</option>
+      <option value="Champagne">Champagne</option>
+      <option value="Vallée du Rhône">Vallée du Rhône</option>
+      <option value="Loire">Loire</option>
+      <option value="Alsace">Alsace</option>
+      <option value="Languedoc-Roussillon">Languedoc-Roussillon</option>
+      <option value="Toscane">Toscane</option>
+      <option value="Piémont">Piémont</option>
+      <option value="Rioja">Rioja</option>
+      <option value="Ribera del Duero">Ribera del Duero</option>
+      <option value="Douro">Douro</option>
+      <option value="Napa Valley">Napa Valley</option>
+      <option value="Mendoza">Mendoza</option>
+      <option value="Central Valley">Central Valley</option>
+      <option value="Barossa Valley">Barossa Valley</option>
+      <option value="Marlborough">Marlborough</option>
+      <option value="Autre">Autre</option>
+    </select>
+
+    <label>Année</label>
+    <input type="number" id="year" placeholder="2018" min="1900" max="2099">
+
+    <label>Note /5</label>
+    <select id="rating">
+      <option value="5">★★★ 5/5</option>
+      <option value="4">★★☆ 4/5</option>
+      <option value="3">★★★☆ 3/5</option>
+      <option value="2">★★☆ 2/5</option>
+      <option value="1">★☆ 1/5</option>
+    </select>
+
+    <label>Notes de dégustation</label>
+    <textarea id="notes" rows="3" placeholder="Nez, bouche, finale..."></textarea>
+
+    <label>Photo de la bouteille</label>
+    <div class="photo-btns">
+      <button class="btn-secondary" onclick="takePhoto()">📷 Prendre une photo</button>
+      <button class="btn-secondary" onclick="choosePhoto()">🖼️ Choisir une photo</button>
+    </div>
+    <input type="file" id="photoCamera" accept="image/*" capture="environment">
+    <input type="file" id="photoGallery" accept="image/*">
+    <img id="preview" class="photo-preview">
+
+    <button class="btn-primary" id="submitBtn" onclick="addWine()">Ajouter au comparatif</button>
+  </div>
+
+  <div class="card">
+    <h3>Mes vins récents</h3>
+    <div id="recentList"></div>
+  </div>
+</div>
+
+<div class="screen" id="screenRank">
+  <div class="card">
+    <h3 style="margin-bottom:12px">Classement par note</h3>
+
+    <div class="filter-row">
+      <select id="filterRegion" onchange="loadRank()">
+        <option value="">Toutes les régions</option>
+        <option value="Bordeaux">Bordeaux</option>
+        <option value="Sud-Ouest">Sud-Ouest</option>
+        <option value="Bourgogne">Bourgogne</option>
+        <option value="Champagne">Champagne</option>
+        <option value="Vallée du Rhône">Vallée du Rhône</option>
+        <option value="Loire">Loire</option>
+        <option value="Alsace">Alsace</option>
+        <option value="Languedoc-Roussillon">Languedoc-Roussillon</option>
+        <option value="Toscane">Toscane</option>
+        <option value="Piémont">Piémont</option>
+        <option value="Rioja">Rioja</option>
+        <option value="Ribera del Duero">Ribera del Duero</option>
+        <option value="Douro">Douro</option>
+        <option value="Napa Valley">Napa Valley</option>
+        <option value="Mendoza">Mendoza</option>
+        <option value="Central Valley">Central Valley</option>
+        <option value="Barossa Valley">Barossa Valley</option>
+        <option value="Marlborough">Marlborough</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
+
+    <div id="rankList"></div>
+    <button class="btn-secondary" onclick="exportJSON()" style="margin-top:12px">Exporter JSON</button>
+    <button class="btn-secondary" onclick="importJSON()" style="margin-top:8px">Importer JSON</button>
+    <button class="btn-danger" onclick="clearAll()" style="margin-top:8px">Tout effacer</button>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+  </div>
+</div>
+
+<div class="modal" id="photoModal">
+  <button class="modal-close" onclick="closeModal()">×</button>
+  <div class="modal-zoom-container" id="zoomContainer">
+    <img id="modalImg">
+  </div>
+</div>
+
+<div class="modal" id="importModal">
+  <div class="card" style="max-width:320px;text-align:center">
+    <h3 style="margin-bottom:12px">Importer des vins</h3>
+    <p id="importMsg" style="margin-bottom:16px;opacity:0.8"></p>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" id="btnMerge">Fusionner</button>
+      <button class="btn-danger" id="btnOverwrite">Écrase</button>
+    </div>
+    <button class="btn-secondary" id="btnCancel" style="margin-top:8px">Annuler</button>
+  </div>
+</div>
+
+<script>
+const el = id => document.getElementById(id);
+let currentPhoto = null;
+let editingId = null;
+let scale=1,startDist=0,startScale=1;
+
+function switchScreen(screen){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  if(screen==='add'){
+    el('screenAdd').classList.add('active');
+    el('navAdd').classList.add('active');
+    loadRecent();
+  }
+  if(screen==='rank'){
+    el('screenRank').classList.add('active');
+    el('navRank').classList.add('active');
+    loadRank();
+  }
+}
+
+function takePhoto(){
+  el('photoCamera').click();
+}
+
+function choosePhoto(){el('photoGallery').click();}
+
+function handlePhoto(file){
+  if(!file) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = ev => {
+    img.onload = () => {
+      const maxWidth = 800;
+      const scale = Math.min(maxWidth / img.width, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      currentPhoto = canvas.toDataURL('image/jpeg', 0.7);
+      el('preview').src = currentPhoto;
+      el('preview').style.display = 'block';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+el('photoCamera').addEventListener('change', e => handlePhoto(e.target.files[0]));
+el('photoGallery').addEventListener('change', e => handlePhoto(e.target.files[0]));
+
+function addWine(){
+  const name = el('name').value.trim();
+  if(!name){alert('Mets un nom de vin');return;}
+
+  let list = JSON.parse(localStorage.getItem('wineList')||'[]');
+  const wineData = {
+    name,
+    region: el('region').value,
+    year: el('year').value,
+    rating: parseInt(el('rating').value),
+    notes: el('notes').value.trim(),
+    photo: currentPhoto
+  };
+
+  if(editingId){
+    list = list.map(w => w.id === editingId? {...w,...wineData} : w);
+    editingId = null;
+    el('submitBtn').textContent = 'Ajouter au comparatif';
+  } else {
+    const wine = {id:Date.now(),...wineData, date:new Date().toLocaleString('fr-FR')};
+    list.unshift(wine);
+  }
+
+  try{
+    localStorage.setItem('wineList', JSON.stringify(list));
+    clearForm();
+    loadRecent();
+    loadRank();
+    alert(editingId===null?'Vin ajouté!':'Vin modifié!');
+  } catch(e){alert('Stockage plein. Supprime des vins ou exporte-les avant.')}
+}
+
+function editWine(id){
+  const list = JSON.parse(localStorage.getItem('wineList')||'[]');
+  const wine = list.find(w => w.id === id);
+  if(!wine) return;
+
+  editingId=id;
+  el('name').value=wine.name;
+  el('region').value=wine.region||'';
+  el('year').value=wine.year;
+  el('rating').value=wine.rating;
+  el('notes').value=wine.notes;
+  currentPhoto=wine.photo;
+
+  if(wine.photo){el('preview').src=wine.photo;el('preview').style.display='block'}
+  el('submitBtn').textContent='Enregistrer les modifs';
+  switchScreen('add');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function clearForm(){
+  editingId=null;
+  el('name').value='';
+  el('region').value='';
+  el('year').value='';
+  el('rating').value='5';
+  el('notes').value='';
+  el('photoCamera').value='';
+  el('photoGallery').value='';
+  currentPhoto=null;
+  el('preview').style.display='none';
+  el('submitBtn').textContent='Ajouter au comparatif';
+}
+
+function loadRecent(){
+  const list=JSON.parse(localStorage.getItem('wineList')||'[]');
+  el('recentList').innerHTML=list.slice(0,3).map(w=>renderWineItem(w,false)).join('')||'<div style="opacity:0.6;text-align:center;padding:20px">Aucun vin</div>';
+}
+
+function loadRank(){
+  let list=JSON.parse(localStorage.getItem('wineList')||'[]');
+
+  const filterVal = el('filterRegion').value;
+  if(filterVal){
+    list = list.filter(w => w.region === filterVal);
+  }
+
+  list.sort((a,b)=>b.rating-a.rating||b.year-a.year);
+
+  el('rankList').innerHTML=list.map(w=>renderWineItem(w,true)).join('')||
+    '<div style="opacity:0.6;text-align:center;padding:20px">Aucun vin dans cette région</div>';
+}
+
+function renderWineItem(w,showActions){
+  return `<div class="wine-item">
+    ${w.photo?`<img src="${w.photo}" onclick="openModal('${w.photo}')">`:''}
+    <div class="wine-content">
+      <div class="wine-name">${w.name}</div>
+      <div class="wine-meta">${w.region||'Région inconnue'} ${w.year?`• ${w.year}`:''}</div>
+      <div class="stars">${'★'.repeat(w.rating)}${'☆'.repeat(5-w.rating)} ${w.rating}/5</div>
+      ${w.notes?`<div class="wine-meta">${w.notes}</div>`:''}
+      ${showActions?`<div class="actions">
+        <button class="btn-secondary" onclick="editWine(${w.id})">Modifier</button>
+        <button class="btn-danger" onclick="deleteWine(${w.id})">Supprimer</button>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+function openModal(src){
+  el('modalImg').src=src;
+  el('photoModal').classList.add('active');
+  scale=1;
+  el('modalImg').style.transform='scale(1)';
+}
+
+function closeModal(){
+  el('photoModal').classList.remove('active');
+  scale=1;
+  el('modalImg').style.transform='scale(1)';
+}
+
+el('photoModal').addEventListener('click',e=>{if(e.target===el('photoModal'))closeModal()});
+
+function getDistance(touches){
+  const dx=touches[0].clientX-touches[1].clientX;
+  const dy=touches[0].clientY-touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+const zoomContainer=el('zoomContainer');
+const zoomImg=el('modalImg');
+
+zoomContainer.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+
+zoomContainer.addEventListener('touchstart',e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    startDist=getDistance(e.touches);
+    startScale=scale;
+  }
+},{passive:false});
+
+zoomContainer.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dist=getDistance(e.touches);
+    const newScale=startScale*(dist/startDist);
+    scale=Math.min(Math.max(1,newScale),4);
+    zoomImg.style.transform=`scale(${scale})`;
+  }
+},{passive:false});
+
+zoomContainer.addEventListener('touchend',e=>{
+  if(e.touches.length<2)startDist=0;
+},{passive:false});
+
+function deleteWine(id){
+  if(!confirm('Supprimer ce vin?'))return;
+  let list=JSON.parse(localStorage.getItem('wineList')||'[]');
+  list=list.filter(w=>w.id!==id);
+  localStorage.setItem('wineList',JSON.stringify(list));
+  loadRecent();loadRank();
+}
+
+function clearAll(){
+  if(!confirm('Effacer tout le comparatif?'))return;
+  localStorage.removeItem('wineList');
+  loadRecent();loadRank();
+}
+
+function exportJSON(){
+  const list=localStorage.getItem('wineList');
+  const blob=new Blob([list],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`vins-${Date.now()}.json`;a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(){
+  el('importFile').click();
+}
+
+el('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const importedData = JSON.parse(ev.target.result);
+      if(!Array.isArray(importedData)) throw new Error('Format invalide');
+
+      const currentData = JSON.parse(localStorage.getItem('wineList') || '[]');
+
+      el('importMsg').textContent = `Fichier : ${importedData.length} vin(s).\nActuellement : ${currentData.length} vin(s).`;
+      el('importModal').classList.add('active');
+
+      const doImport = (mode) => {
+        el('importModal').classList.remove('active');
+        let finalData;
+
+        if(mode === 'merge'){
+          const ids = new Set(currentData.map(w => w.id));
+          const newItems = importedData.filter(w =>!ids.has(w.id));
+          finalData = [...currentData,...newItems];
+          alert(`${newItems.length} vin(s) ajouté(s). Total : ${finalData.length}`);
+        } else {
+          finalData = importedData;
+          alert(`Liste remplacée. Total : ${finalData.length} vin(s)`);
+        }
+
+        localStorage.setItem('wineList', JSON.stringify(finalData));
+        loadRecent();
+        loadRank();
+      };
+
+      el('btnMerge').onclick = () => doImport('merge');
+      el('btnOverwrite').onclick = () => doImport('overwrite');
+      el('btnCancel').onclick = () => el('importModal').classList.remove('active');
+
+    } catch(err) {
+      alert('Fichier invalide : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+loadRecent();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+</script>
+</body>
+</html>
