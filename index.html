@@ -18,9 +18,20 @@ h1{font-size:1.4rem;margin-bottom:16px;color:var(--accent)}
   font-size:0.75rem;opacity:0.4;color:var(--text);white-space:nowrap;z-index:10;
 }
 
+.notification{
+  position:fixed;top:12px;left:12px;right:12px;padding:12px 16px;border-radius:12px;
+  background:var(--card);border-left:4px solid var(--accent);z-index:2000;
+  display:none;animation:slideIn 0.3s ease;
+}
+.notification.show{display:block}
+.notification.error{border-left-color:#E22134}
+.notification.success{border-left-color:#22C55E}
+@keyframes slideIn{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
 .nav{display:flex;gap:8px;margin-bottom:16px}
 .nav button{flex:1;padding:12px;background:var(--card);border:none;color:var(--text);border-radius:12px;font-weight:600}
 .nav button.active{background:var(--accent);color:#1A0F1A}
+.nav button:disabled{opacity:0.5;cursor:not-allowed}
 .screen{display:none}
 .screen.active{display:block}
 .card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:16px}
@@ -29,15 +40,16 @@ input,textarea,select{
   padding:12px;color:var(--text);font-size:1rem;margin-bottom:12px
 }
 input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
+input:disabled,textarea:disabled,select:disabled{opacity:0.5;cursor:not-allowed}
 label{font-size:0.85rem;opacity:0.7;margin-bottom:6px;display:block}
-button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:600;width:100%;cursor:pointer}
+button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:600;width:100%;cursor:pointer;transition:opacity 0.2s}
+button:active{opacity:0.8}
 .btn-primary{background:var(--accent);color:#1A0F1A}
 .btn-secondary{background:#ffffff1a;color:var(--text)}
 .btn-danger{background:#E22134;color:white}
 .photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:12px;margin-bottom:12px;display:none}
 
-/* Fix photo inputs - hors écran au lieu de display:none */
 #photoCamera, #photoGallery{
   position:absolute;
   left:-9999px;
@@ -51,6 +63,7 @@ button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:60
 .wine-content{flex:1}
 .wine-name{font-size:1.1rem;font-weight:700;color:var(--accent)}
 .wine-meta{font-size:0.9rem;opacity:0.8;margin:4px 0}
+.wine-date{font-size:0.8rem;opacity:0.6;margin-top:4px}
 .stars{color:#C9A86A;font-size:1.2rem}
 .actions{display:flex;gap:8px;margin-top:8px}
 .actions button{padding:10px;font-size:0.9rem}
@@ -59,13 +72,14 @@ button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:60
 .modal.active{display:flex}
 .modal-zoom-container{width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none}
 .modal img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center}
-.modal-close{position:absolute;top:20px;right:20px;font-size:2rem;color:white;background:none;border:none;z-index:1001}
+.modal-close{position:absolute;top:20px;right:20px;font-size:2rem;color:white;background:none;border:none;z-index:1001;cursor:pointer}
 
 .filter-row{display:flex;gap:8px;margin-bottom:12px}
 .filter-row select{margin-bottom:0}
 </style>
 </head>
 <body>
+<div class="notification" id="notification"></div>
 <div class="creator">Built by Loïc D.</div>
 <h1>🍷 Comparatif Vin</h1>
 
@@ -108,11 +122,11 @@ button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:60
 
     <label>Note /5</label>
     <select id="rating">
-      <option value="5">★★★ 5/5</option>
-      <option value="4">★★☆ 4/5</option>
-      <option value="3">★★★☆ 3/5</option>
-      <option value="2">★★☆ 2/5</option>
-      <option value="1">★☆ 1/5</option>
+      <option value="5">★★★★★ 5/5</option>
+      <option value="4">★★★★☆ 4/5</option>
+      <option value="3">★★★☆☆ 3/5</option>
+      <option value="2">★★☆☆☆ 2/5</option>
+      <option value="1">★☆☆☆☆ 1/5</option>
     </select>
 
     <label>Notes de dégustation</label>
@@ -166,17 +180,17 @@ button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:60
     </div>
 
     <div id="rankList"></div>
-    <button class="btn-secondary" onclick="exportJSON()" style="margin-top:12px">Exporter JSON</button>
-    <button class="btn-secondary" onclick="importJSON()" style="margin-top:8px">Importer JSON</button>
-    <button class="btn-danger" onclick="clearAll()" style="margin-top:8px">Tout effacer</button>
+    <button class="btn-secondary" onclick="exportJSON()" style="margin-top:12px">📥 Exporter JSON</button>
+    <button class="btn-secondary" onclick="importJSON()" style="margin-top:8px">📤 Importer JSON</button>
+    <button class="btn-danger" onclick="clearAll()" style="margin-top:8px">🗑️ Tout effacer</button>
     <input type="file" id="importFile" accept=".json,application/json" style="display:none">
   </div>
 </div>
 
 <div class="modal" id="photoModal">
-  <button class="modal-close" onclick="closeModal()">×</button>
+  <button class="modal-close" onclick="closeModal()" title="Fermer">×</button>
   <div class="modal-zoom-container" id="zoomContainer">
-    <img id="modalImg">
+    <img id="modalImg" alt="Aperçu photo">
   </div>
 </div>
 
@@ -186,7 +200,7 @@ button{border:none;border-radius:12px;padding:14px;font-size:1rem;font-weight:60
     <p id="importMsg" style="margin-bottom:16px;opacity:0.8"></p>
     <div style="display:flex;gap:8px">
       <button class="btn-primary" id="btnMerge">Fusionner</button>
-      <button class="btn-danger" id="btnOverwrite">Écrase</button>
+      <button class="btn-danger" id="btnOverwrite">Remplacer</button>
     </div>
     <button class="btn-secondary" id="btnCancel" style="margin-top:8px">Annuler</button>
   </div>
@@ -197,7 +211,51 @@ const el = id => document.getElementById(id);
 let currentPhoto = null;
 let editingId = null;
 let scale=1,startDist=0,startScale=1;
+let storageAvailable = false;
 
+// ===== CONSTANTS =====
+const REGIONS = [
+  'Bordeaux','Sud-Ouest','Bourgogne','Champagne','Vallée du Rhône','Loire','Alsace',
+  'Languedoc-Roussillon','Toscane','Piémont','Rioja','Ribera del Duero','Douro',
+  'Napa Valley','Mendoza','Central Valley','Barossa Valley','Marlborough','Autre'
+];
+
+// ===== UTILS =====
+function escapeHtml(text){
+  const map={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function showNotification(msg, type='info', duration=3000){
+  const notif = el('notification');
+  notif.textContent = msg;
+  notif.className = `notification show ${type}`;
+  setTimeout(() => notif.classList.remove('show'), duration);
+}
+
+function checkStorage(){
+  try{
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
+function initApp(){
+  storageAvailable = checkStorage();
+  if(!storageAvailable){
+    document.querySelectorAll('.nav button').forEach(b => b.disabled = true);
+    showNotification('❌ Stockage local non disponible', 'error', 5000);
+    return;
+  }
+  loadRecent();
+  loadRank();
+}
+
+// ===== SCREEN NAVIGATION =====
 function switchScreen(screen){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -213,14 +271,20 @@ function switchScreen(screen){
   }
 }
 
-function takePhoto(){
-  el('photoCamera').click();
-}
-
+// ===== PHOTO HANDLING =====
+function takePhoto(){el('photoCamera').click();}
 function choosePhoto(){el('photoGallery').click();}
 
 function handlePhoto(file){
   if(!file) return;
+  
+  // Vérifier taille
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if(file.size > maxSize){
+    showNotification('❌ Image trop grande (max 5MB)', 'error');
+    return;
+  }
+
   const img = new Image();
   const reader = new FileReader();
   reader.onload = ev => {
@@ -235,8 +299,15 @@ function handlePhoto(file){
       currentPhoto = canvas.toDataURL('image/jpeg', 0.7);
       el('preview').src = currentPhoto;
       el('preview').style.display = 'block';
+      showNotification('✓ Photo compressée', 'success', 2000);
+    };
+    img.onerror = () => {
+      showNotification('❌ Image corrompue', 'error');
     };
     img.src = ev.target.result;
+  };
+  reader.onerror = () => {
+    showNotification('❌ Erreur lecture fichier', 'error');
   };
   reader.readAsDataURL(file);
 }
@@ -244,15 +315,24 @@ function handlePhoto(file){
 el('photoCamera').addEventListener('change', e => handlePhoto(e.target.files[0]));
 el('photoGallery').addEventListener('change', e => handlePhoto(e.target.files[0]));
 
+// ===== WINE MANAGEMENT =====
 function addWine(){
+  if(!storageAvailable){
+    showNotification('❌ Stockage indisponible', 'error');
+    return;
+  }
+
   const name = el('name').value.trim();
-  if(!name){alert('Mets un nom de vin');return;}
+  if(!name){
+    showNotification('⚠️ Ajoute un nom de vin', 'error');
+    return;
+  }
 
   let list = JSON.parse(localStorage.getItem('wineList')||'[]');
   const wineData = {
     name,
     region: el('region').value,
-    year: el('year').value,
+    year: el('year').value || '',
     rating: parseInt(el('rating').value),
     notes: el('notes').value.trim(),
     photo: currentPhoto
@@ -263,7 +343,11 @@ function addWine(){
     editingId = null;
     el('submitBtn').textContent = 'Ajouter au comparatif';
   } else {
-    const wine = {id:Date.now(),...wineData, date:new Date().toLocaleString('fr-FR')};
+    const wine = {
+      id:Date.now(),
+      ...wineData,
+      date: new Date().toLocaleString('fr-FR')
+    };
     list.unshift(wine);
   }
 
@@ -272,8 +356,14 @@ function addWine(){
     clearForm();
     loadRecent();
     loadRank();
-    alert(editingId===null?'Vin ajouté!':'Vin modifié!');
-  } catch(e){alert('Stockage plein. Supprime des vins ou exporte-les avant.')}
+    showNotification(editingId===null ? '✓ Vin ajouté!' : '✓ Vin modifié!', 'success');
+  } catch(e){
+    if(e.name === 'QuotaExceededError'){
+      showNotification('💾 Stockage plein! Exporte et efface des vins.', 'error', 5000);
+    } else {
+      showNotification('❌ Erreur: ' + e.message, 'error');
+    }
+  }
 }
 
 function editWine(id){
@@ -289,8 +379,11 @@ function editWine(id){
   el('notes').value=wine.notes;
   currentPhoto=wine.photo;
 
-  if(wine.photo){el('preview').src=wine.photo;el('preview').style.display='block'}
-  el('submitBtn').textContent='Enregistrer les modifs';
+  if(wine.photo){
+    el('preview').src=wine.photo;
+    el('preview').style.display='block';
+  }
+  el('submitBtn').textContent='💾 Enregistrer les modifs';
   switchScreen('add');
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -309,9 +402,25 @@ function clearForm(){
   el('submitBtn').textContent='Ajouter au comparatif';
 }
 
+function deleteWine(id){
+  if(!confirm('Supprimer ce vin?'))return;
+  let list=JSON.parse(localStorage.getItem('wineList')||'[]');
+  list=list.filter(w=>w.id!==id);
+  try{
+    localStorage.setItem('wineList',JSON.stringify(list));
+    loadRecent();
+    loadRank();
+    showNotification('✓ Vin supprimé', 'success', 2000);
+  } catch(e){
+    showNotification('❌ Erreur suppression', 'error');
+  }
+}
+
+// ===== DISPLAY FUNCTIONS =====
 function loadRecent(){
   const list=JSON.parse(localStorage.getItem('wineList')||'[]');
-  el('recentList').innerHTML=list.slice(0,3).map(w=>renderWineItem(w,false)).join('')||'<div style="opacity:0.6;text-align:center;padding:20px">Aucun vin</div>';
+  el('recentList').innerHTML=list.slice(0,3).map(w=>renderWineItem(w,false)).join('')||
+    '<div style="opacity:0.6;text-align:center;padding:20px">Aucun vin</div>';
 }
 
 function loadRank(){
@@ -329,22 +438,33 @@ function loadRank(){
 }
 
 function renderWineItem(w,showActions){
+  const photoHtml = w.photo ? `<img src="${w.photo}" alt="${escapeHtml(w.name)}" onclick="openModal('${w.photo}')" loading="lazy">` : '';
+  const dateHtml = w.date ? `<div class="wine-date">📅 ${escapeHtml(w.date)}</div>` : '';
+  const notesHtml = w.notes ? `<div class="wine-meta">${escapeHtml(w.notes)}</div>` : '';
+  const actionsHtml = showActions ? `<div class="actions">
+    <button class="btn-secondary" onclick="editWine(${w.id})">✏️ Modifier</button>
+    <button class="btn-danger" onclick="deleteWine(${w.id})">🗑️ Supprimer</button>
+  </div>` : '';
+
   return `<div class="wine-item">
-    ${w.photo?`<img src="${w.photo}" onclick="openModal('${w.photo}')">`:''}
+    ${photoHtml}
     <div class="wine-content">
-      <div class="wine-name">${w.name}</div>
-      <div class="wine-meta">${w.region||'Région inconnue'} ${w.year?`• ${w.year}`:''}</div>
+      <div class="wine-name">${escapeHtml(w.name)}</div>
+      <div class="wine-meta">${escapeHtml(w.region||'Région inconnue')} ${w.year?`• ${escapeHtml(w.year)}`:''}</div>
       <div class="stars">${'★'.repeat(w.rating)}${'☆'.repeat(5-w.rating)} ${w.rating}/5</div>
-      ${w.notes?`<div class="wine-meta">${w.notes}</div>`:''}
-      ${showActions?`<div class="actions">
-        <button class="btn-secondary" onclick="editWine(${w.id})">Modifier</button>
-        <button class="btn-danger" onclick="deleteWine(${w.id})">Supprimer</button>
-      </div>`:''}
+      ${notesHtml}
+      ${dateHtml}
+      ${actionsHtml}
     </div>
   </div>`;
 }
 
+// ===== MODAL & ZOOM =====
 function openModal(src){
+  if(!src){
+    showNotification('❌ Image indisponible', 'error');
+    return;
+  }
   el('modalImg').src=src;
   el('photoModal').classList.add('active');
   scale=1;
@@ -392,27 +512,37 @@ zoomContainer.addEventListener('touchend',e=>{
   if(e.touches.length<2)startDist=0;
 },{passive:false});
 
-function deleteWine(id){
-  if(!confirm('Supprimer ce vin?'))return;
-  let list=JSON.parse(localStorage.getItem('wineList')||'[]');
-  list=list.filter(w=>w.id!==id);
-  localStorage.setItem('wineList',JSON.stringify(list));
-  loadRecent();loadRank();
-}
-
+// ===== IMPORT/EXPORT =====
 function clearAll(){
-  if(!confirm('Effacer tout le comparatif?'))return;
-  localStorage.removeItem('wineList');
-  loadRecent();loadRank();
+  if(!confirm('⚠️ Effacer TOUT le comparatif? Cette action est irréversible.'))return;
+  try{
+    localStorage.removeItem('wineList');
+    loadRecent();
+    loadRank();
+    showNotification('✓ Comparatif vidé', 'success');
+  } catch(e){
+    showNotification('❌ Erreur effacement', 'error');
+  }
 }
 
 function exportJSON(){
-  const list=localStorage.getItem('wineList');
-  const blob=new Blob([list],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`vins-${Date.now()}.json`;a.click();
-  URL.revokeObjectURL(url);
+  try{
+    const list=localStorage.getItem('wineList');
+    if(!list || list === '[]'){
+      showNotification('⚠️ Aucun vin à exporter', 'error');
+      return;
+    }
+    const blob=new Blob([list],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`vins-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('✓ Exporté avec succès', 'success', 2000);
+  } catch(e){
+    showNotification('❌ Erreur export: ' + e.message, 'error');
+  }
 }
 
 function importJSON(){
@@ -428,10 +558,11 @@ el('importFile').addEventListener('change', e => {
     try {
       const importedData = JSON.parse(ev.target.result);
       if(!Array.isArray(importedData)) throw new Error('Format invalide');
+      if(importedData.length === 0) throw new Error('Fichier vide');
 
       const currentData = JSON.parse(localStorage.getItem('wineList') || '[]');
 
-      el('importMsg').textContent = `Fichier : ${importedData.length} vin(s).\nActuellement : ${currentData.length} vin(s).`;
+      el('importMsg').textContent = `📄 Fichier: ${importedData.length} vin(s)\n🗂️ Actuellement: ${currentData.length} vin(s)`;
       el('importModal').classList.add('active');
 
       const doImport = (mode) => {
@@ -440,12 +571,12 @@ el('importFile').addEventListener('change', e => {
 
         if(mode === 'merge'){
           const ids = new Set(currentData.map(w => w.id));
-          const newItems = importedData.filter(w =>!ids.has(w.id));
+          const newItems = importedData.filter(w => !ids.has(w.id));
           finalData = [...currentData,...newItems];
-          alert(`${newItems.length} vin(s) ajouté(s). Total : ${finalData.length}`);
+          showNotification(`✓ ${newItems.length} vin(s) ajouté(s). Total: ${finalData.length}`, 'success');
         } else {
           finalData = importedData;
-          alert(`Liste remplacée. Total : ${finalData.length} vin(s)`);
+          showNotification(`✓ Liste remplacée. Total: ${finalData.length} vin(s)`, 'success');
         }
 
         localStorage.setItem('wineList', JSON.stringify(finalData));
@@ -458,20 +589,27 @@ el('importFile').addEventListener('change', e => {
       el('btnCancel').onclick = () => el('importModal').classList.remove('active');
 
     } catch(err) {
-      alert('Fichier invalide : ' + err.message);
+      showNotification('❌ Fichier invalide: ' + err.message, 'error', 4000);
     }
+  };
+  reader.onerror = () => {
+    showNotification('❌ Erreur lecture fichier', 'error');
   };
   reader.readAsText(file);
   e.target.value = '';
 });
 
-loadRecent();
-
+// ===== SERVICE WORKER =====
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js');
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.error('SW error:', err));
   });
 }
+
+// ===== INIT =====
+initApp();
 </script>
 </body>
 </html>
